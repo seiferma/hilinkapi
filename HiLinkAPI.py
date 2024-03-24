@@ -93,7 +93,7 @@ class webui(Thread):
         125003: "ERROR_WRONG_SESSION_TOKEN",
     }
 
-    def __init__(self, modemname, host, username=None, password=None, logger=None, httptimeout=10):
+    def __init__(self, modemname, host, username=None, password=None, logger=None, httptimeout=10, tls_cert=None):
         """
         Initialize webui
         """
@@ -108,7 +108,12 @@ class webui(Thread):
         else:
             self.logger = logger
         # build http host URL
-        self._httpHost = f"http://{self._host}"
+        if tls_cert is not None:
+            self._httpHost = f"https://{self._host}"
+            self._httpCert = tls_cert
+        else:
+            self._httpHost = f"http://{self._host}"
+            self._httpCert = None
         # timeout for a HTTP call (seconds)
         self._HTTPcallTimeOut = httptimeout
         # variables required for webui session
@@ -263,7 +268,7 @@ class webui(Thread):
             cookies = self.buildCookies()
         # request
         try:
-            _response = requests.get(f"{self._httpHost}{endpoint}", cookies=cookies, timeout=self._HTTPcallTimeOut)
+            _response = requests.get(f"{self._httpHost}{endpoint}", cookies=cookies, timeout=self._HTTPcallTimeOut, verify=self._httpCert)
             self.processHTTPHeaders(_response)
             return _response
         except Exception as e:
@@ -291,7 +296,7 @@ class webui(Thread):
             cookies = self.buildCookies()
         # request
         try:
-            _response = requests.post(f"{self._httpHost}{endpoint}", data=postBody, cookies=cookies, headers=headers, timeout=self._HTTPcallTimeOut)
+            _response = requests.post(f"{self._httpHost}{endpoint}", data=postBody, cookies=cookies, headers=headers, timeout=self._HTTPcallTimeOut, verify=self._httpCert)
             self.processHTTPHeaders(_response)
             return  _response
         except Exception as e:
@@ -1404,7 +1409,7 @@ class webui(Thread):
                 # Use requests.post as no return and trigger of request timeout error
                 cookies = self.buildCookies()
                 try:
-                    requests.post(f"{self._httpHost}/api/device/control", data=xml_body, cookies=cookies, headers=headers, timeout=3)
+                    requests.post(f"{self._httpHost}/api/device/control", data=xml_body, cookies=cookies, headers=headers, timeout=3, verify=self._httpCert)
                 except Exception as e:
                     self.logger.debug(f"Reboot call exception found - {e}")
                 #return
